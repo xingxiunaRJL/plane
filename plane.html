@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>plane</title>
+	<style>
+		#game{
+			width: 400px;
+			height:400px;
+			background-color: #000;
+			margin:50px auto;
+			position: relative;
+		}
+		.bullet{
+			width: 15px;
+			height: 15px;
+			border-radius: 50%;
+			position: absolute;
+			top:0;
+			left: 0;
+			background-color: red;
+		}
+		.plane{
+			position: absolute;
+			top:0;
+			left:0;
+			width:32px;
+			height: 32px;
+			background: url(plane2.png);
+		}
+		.timer{color: #fff;}
+	</style>
+</head>
+<body>
+	<div id="game">
+	</div>
+	<script>
+		function getR(m,n){
+			return Math.round( Math.random()*(n-m) + m );
+		}
+		var ox = document.getElementById('game').offsetWidth;
+		var oy = document.getElementById('game').offsetHeight;
+		
+		var colors = ['red','green','skyblue','orange','yellow','pink','blue','pueple'];
+		//子弹
+		function Bullet(){
+			this.ele = document.createElement('div');
+			this.ele.className = 'bullet';
+			this.x = getR(20,100);
+			this.y = getR(20,100);
+			this.ele.style.top = this.y +'px';
+			this.ele.style.left = this.x +'px';
+			this.ele.style.backgroundColor = colors[getR(0,colors.length-1)];
+			this.speedX = Math.random() > 0.5 ? getR(2,5) : -getR(2,5);
+			this.speedY = Math.random() > 0.5 ? getR(2,5) : -getR(2,5);
+			document.getElementById('game').appendChild(this.ele);
+		}
+		Bullet.prototype.move = function(){
+			this.x += this.speedX;
+			this.y += this.speedY;
+			//对于水平方向,如果this.x > 400,this.x <0 掉头;
+			this.speedX = this.x > ox -20? this.speedX*-1 :this.speedX;
+			this.speedY = this.y > oy -20? this.speedY*-1 :this.speedY;
+			//对于垂直方向,如果this.y > 400,this.y <0 掉头;
+			this.speedY = this.y < 0 ? this.speedY*-1 :this.speedY;
+			this.speedX = this.x < 0 ? this.speedX*-1 :this.speedX;
+			this.ele.style.top = this.y +'px';
+			this.ele.style.left = this.x +'px';
+		}
+		//时间
+		var timer = {
+			ele : document.createElement('div'),
+			time : 0,
+			start : 0,
+			init : function(){
+				this.ele.className = 'timer';
+				this.start = Date.now();
+				this.ele.innerHTML = '你已经坚持了'+this.time+'秒';
+				document.getElementById('game').appendChild(this.ele);
+			},
+			move : function(){
+				this.time = parseInt( (Date.now() - this.start)/100 )/10;
+				this.ele.innerHTML = '你已经坚持了'+this.time+'秒';
+			}
+		}
+		//飞机
+		var plane = {
+			speed :4 ,
+			x : ox/2,
+			y : oy/2,  //飞机最初的位置
+			ele:document.createElement('div'),
+			init : function(){
+				this.ele.className = 'plane';
+				this.ele.style.left = this.x + 'px',
+				this.ele.style.top = this.y + 'px',
+				document.getElementById('game').appendChild(this.ele);
+			},
+			move : function(){
+				var box_w = document.getElementById('game').offsetWidth;
+				var box_h = document.getElementById('game').offsetHeight;
+				if(game.status[38] && game.status[39]){  //右上
+					if( this.ele.offsetLeft <= box_w - 36 && this.ele.offsetTop >= 4 ){
+						plane.y -= this.speed;
+						plane.x += this.speed;
+					}
+					this.ele.style.transform = 'rotate(45deg)';
+				}else if(game.status[39] && game.status[40]){  //右下
+					if( this.ele.offsetLeft <= box_w - 36 && this.ele.offsetTop <= box_h - 36 ){
+						plane.y += this.speed;
+						plane.x += this.speed;
+					}
+					this.ele.style.transform = 'rotate(135deg)';
+				}else if(game.status[37] && game.status[38]){  //左上
+					if( this.ele.offsetLeft >= 4 && this.ele.offsetTop >= 4 ){
+						plane.y -= this.speed;
+						plane.x -= this.speed;
+					}
+					this.ele.style.transform = 'rotate(-45deg)';
+				}else if(game.status[37] && game.status[40]){  //左下
+					if( this.ele.offsetLeft >= 4 && this.ele.offsetTop <= box_h - 36  ){
+						plane.y += this.speed;
+						plane.x -= this.speed;
+					}
+					this.ele.style.transform = 'rotate(-135deg)';
+				}else if(game.status[38]){ //向上
+					if( this.ele.offsetTop >= 4 ){
+						plane.y -= this.speed;
+					}
+					this.ele.style.transform = 'rotate(0deg)';
+				}else if(game.status[39]){ //向右
+					if( this.ele.offsetLeft <= box_w - 36 ){
+						plane.x += this.speed;
+					}
+					this.ele.style.transform = 'rotate(90deg)';
+				}else if(game.status[40]){ //向下
+					if( this.ele.offsetTop <= box_h - 36 ){
+						plane.y += this.speed;
+					}
+					this.ele.style.transform = 'rotate(180deg)';
+				}else if(game.status[37]){ //向左
+					if( this.ele.offsetLeft >= 4 ){
+						plane.x -= this.speed;
+					}
+					this.ele.style.transform = 'rotate(-90deg)';
+				} 
+				
+				this.ele.style.left = this.x + 'px';
+				this.ele.style.top = this.y + 'px';
+			}
+		}
+		var game = {
+			status:{
+				37:false,  //左
+				38:false,  //上
+				39:false,  //右
+				40:false,  //下
+			},
+			act :[],
+			number : 10, //子弹的数量
+			start : function(){
+				var that = this;
+				timer.init();
+				plane.init();
+				this.act.push( timer );
+				this.act.push( plane );
+				document.body.addEventListener('keydown',function(e){
+					that.status.hasOwnProperty(e.keyCode) && (that.status[e.keyCode] = true);
+				})
+				document.body.addEventListener('keyup',function(e){
+					that.status.hasOwnProperty(e.keyCode) && (that.status[e.keyCode] = false);
+				})
+				for(var i = 0 ;i<this.number;i++){
+					this.act.push( new Bullet());
+				}
+				
+				var otimer = setInterval(function(){
+					if( !that.isover() )
+						for(var i = 0 ;i<that.act.length;i++){
+							that.act[i].move();
+					}else{
+						console.log('over');
+						clearInterval(otimer);
+					}
+				},50)
+				
+			},
+			isover : function(){
+				//先假设子弹没有撞到飞机
+				var flag = false;
+				//飞机的中心点
+				var plane_x = plane.x + 32/2;
+				var plane_y = plane.y + 32/2;
+				//循环得到每个子弹,判断子弹与飞机之间的距离,如果距离小于子弹的直径,说明撞上了;
+				for( var i = 0;i<game.act.length;i++){
+					 var t = game.act[i];
+					 if( t.constructor === Bullet){
+					 	//子弹的中心
+					 	var x = t.x + t.ele.offsetWidth/2;
+					 	var y = t.y + t.ele.offsetHeight/2;
+					 	if( Math.pow(x-plane_x ,2) + Math.pow(y-plane_y ,2) < 20*20){
+					 		flag = true;
+					 		break;
+					 	}
+					 }
+				}
+				return flag;
+			}
+			
+		}
+		game.start();
+		
+	</script>
+</body>
+</html>
